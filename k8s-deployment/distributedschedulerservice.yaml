@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: distributed-scheduler
+    version: latest
+  name: distributed-scheduler
+  namespace: default
+spec:
+  replicas: 2
+  minReadySeconds: 45
+  selector:
+    matchLabels:
+      app: distributed-scheduler
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: distributed-scheduler
+        version: latest
+    spec:
+      containers:
+        - image: amsidhmicroservice/distributedschedulerservice:latest
+          imagePullPolicy: Always
+          name: distributed-scheduler
+          ports:
+            - name: http-port
+              containerPort: 8181
+          resources:
+            requests:
+              memory: 512Mi
+            limits:
+              memory: 1024Mi
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+#Distributed-Scheduler Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: distributed-scheduler-service
+    version: latest
+  name: distributed-scheduler-service
+spec:
+  ports:
+    - name: http-port
+      port: 8181
+  selector:
+    app: distributed-scheduler
+    version: latest
+  sessionAffinity: ClientIP
+  type: ClusterIP
+
+---
+#Hazelcast Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: hazelcast-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: APP-NAME
+  ports:
+    - name: hazelcast
+      port: 5701
