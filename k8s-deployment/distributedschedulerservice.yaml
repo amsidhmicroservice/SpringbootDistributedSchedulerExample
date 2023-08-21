@@ -7,7 +7,7 @@ metadata:
   name: distributed-scheduler
   namespace: default
 spec:
-  replicas: 2
+  replicas: 4
   minReadySeconds: 45
   selector:
     matchLabels:
@@ -30,6 +30,24 @@ spec:
           ports:
             - name: http-port
               containerPort: 8181
+          command: [ "java" ]
+          args:
+            - -jar
+            - --add-modules
+            - java.se
+            - --add-exports
+            - java.base/jdk.internal.ref=ALL-UNNAMED
+            - --add-opens
+            - java.base/java.lang=ALL-UNNAMED
+            - --add-opens
+            - java.base/java.nio=ALL-UNNAMED
+            - --add-opens
+            - java.base/sun.nio.ch=ALL-UNNAMED
+            - --add-opens
+            - java.management/sun.management=ALL-UNNAMED
+            - --add-opens
+            - jdk.management/com.sun.management.internal=ALL-UNNAMED
+            - distributedschedulerservice.jar
           resources:
             requests:
               memory: 512Mi
@@ -56,16 +74,3 @@ spec:
   sessionAffinity: ClientIP
   type: ClusterIP
 
----
-#Hazelcast Service Configuration
-apiVersion: v1
-kind: Service
-metadata:
-  name: hazelcast-service
-spec:
-  type: LoadBalancer
-  selector:
-    app: APP-NAME
-  ports:
-    - name: hazelcast
-      port: 5701

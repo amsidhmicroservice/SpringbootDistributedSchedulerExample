@@ -4,6 +4,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -19,6 +20,11 @@ import java.util.concurrent.locks.Lock;
 @Slf4j
 @RequiredArgsConstructor
 public class SpringbootDistributedSchedulerExampleApplication {
+
+    // This can also be a member of the class.
+    //HazelcastInstance hazelcastInstance = Hazelcast.newHazelcastInstance();
+
+    @Qualifier("hazelcastInstance")
     private final HazelcastInstance hazelcastInstance;
 
     public static void main(String[] args) {
@@ -29,12 +35,11 @@ public class SpringbootDistributedSchedulerExampleApplication {
     @Scheduled(cron = "0 */1 * ? * *") // Every 1 minute
     public void executeMyScheduler() throws InterruptedException {
 
-        // This can also be a member of the class.
-        HazelcastInstance hazelcastInstance = Hazelcast.newHazelcastInstance();
+
 
         Lock lock = hazelcastInstance.getCPSubsystem().getLock("mySchedulerName");
 
-        if (lock.tryLock(10, TimeUnit.SECONDS)) {
+        if ( lock.tryLock ( 10, TimeUnit.SECONDS ) ) {
             try {
                 // do your schedule tasks here
 
