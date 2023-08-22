@@ -6,18 +6,4 @@ logging:
     root: info
     com.hazelcast: info
 
-hazelcast:
-  group:
-    name: your-hazelcast-group-name
-  metrics.enabled: true
-  integrity-checker:
-    enabled: true
-  diagnostics.enabled: true
-  network:
-    join:
-      multicast:
-        enabled: false
-      kubernetes:
-        enabled: true
-        service-port: 5701
 

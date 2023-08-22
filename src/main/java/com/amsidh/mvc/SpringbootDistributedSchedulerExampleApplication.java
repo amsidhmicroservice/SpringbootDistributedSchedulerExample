@@ -1,7 +1,9 @@
 package com.amsidh.mvc;
 
-import com.hazelcast.core.Hazelcast;
+import com.hazelcast.cluster.Cluster;
+import com.hazelcast.cluster.Member;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.scheduledexecutor.IScheduledExecutorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,19 +12,16 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
 
 @SpringBootApplication
 @EnableScheduling
 @Slf4j
 @RequiredArgsConstructor
 public class SpringbootDistributedSchedulerExampleApplication {
-
-    // This can also be a member of the class.
-    //HazelcastInstance hazelcastInstance = Hazelcast.newHazelcastInstance();
 
     @Qualifier("hazelcastInstance")
     private final HazelcastInstance hazelcastInstance;
@@ -33,27 +32,30 @@ public class SpringbootDistributedSchedulerExampleApplication {
 
     //@Scheduled(cron = "${cron.expression}")
     @Scheduled(cron = "0 */1 * ? * *") // Every 1 minute
-    public void executeMyScheduler() throws InterruptedException {
+    public void executeMyScheduler() {
+        String leaderAddress = getOldestMember().getSocketAddress().toString();
+        String currentAddress = hazelcastInstance.getCluster().getLocalMember().getSocketAddress().toString();
+        if (currentAddress.equals(leaderAddress)) {
+            IScheduledExecutorService scheduler = hazelcastInstance.getScheduledExecutorService("distributed-scheduler");
+            scheduler.schedule(new MySchedulerJob(), 10, TimeUnit.SECONDS);
+        }
+    }
 
-
-
-        Lock lock = hazelcastInstance.getCPSubsystem().getLock("mySchedulerName");
-
-        if ( lock.tryLock ( 10, TimeUnit.SECONDS ) ) {
-            try {
-                // do your schedule tasks here
-
-                long nextLong = new Random().nextLong();
-
-                log.info("Long number displayed {} on time {}", nextLong, new Date());
-            } finally {
-                // don't forget to release lock whatever happens: end of task or any exceptions.
-                //log.info("don't forget to release lock whatever happens: end of task or any exceptions.");
-                lock.unlock();
+    private Member getOldestMember() {
+        Cluster cluster = hazelcastInstance.getCluster();
+        Member oldestMember = null;
+        for (Member member : cluster.getMembers()) {
+            if (oldestMember == null || member.getUuid().compareTo(oldestMember.getUuid()) < 0) {
+                oldestMember = member;
             }
-        } else {
-            // warning: lock has been released by timeout!
-            log.warn("lock has been released by timeout!");
+        }
+        return oldestMember;
+    }
+    static class MySchedulerJob implements Serializable, Runnable {
+        @Override
+        public void run() {
+            long randomLong = new Random().nextLong();
+            log.info("Random Long number generated is {} on time {}", randomLong, new Date());
         }
     }
 }

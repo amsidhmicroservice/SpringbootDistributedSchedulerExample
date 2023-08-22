@@ -1,0 +1,16 @@
+hazelcast:
+  integrity-checker.enabled: true
+  metrics.enabled: true
+  diagnostics.enabled: true
+  network:
+    join:
+      multicast.enabled: false
+      kubernetes:
+        enabled: true
+        namespace: default
+        service-name: hazelcast-service
+  executor-service:
+    distributed-scheduler:
+      pool-size: 10
+      queue-capacity: 1000
+      statistics-enabled: true
